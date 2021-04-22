@@ -13,6 +13,8 @@
 
 using std::string;
 
+void test_routine();
+
 /**
  * term
  */
@@ -27,6 +29,9 @@ struct Term {
         std::stringstream ss{line};
         ss >> m_weight;
         ss >> m_query;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const Term& term) {
+        return os << "<Term weight=" << term.m_weight << ", query=\"" << term.m_query << "\">";
     }
 }; // struct Term
 
@@ -116,13 +121,13 @@ class DBHandler {
     ////////////////////
     private:
         std::vector<Term> m_database;
+        friend void test_routine(void);
 
     ////////////////////
     // Metodos publicos
     ////////////////////
     public:
         explicit DBHandler(const std::vector<string>& lines) {
-            // TODO sortear alfabeticamente 
             m_database.clear();
             bool firstline = true;
             for (const string& line : lines) {
@@ -132,6 +137,8 @@ class DBHandler {
                 }
                 m_database.push_back(Term(line));
             }
+            // TODO sortear alfabeticamente 
+            std::sort(m_database.begin(), m_database.end(), CompTermQuery{});
         }
 
         std::vector<Term> get_terms(const string& prefix);
@@ -179,6 +186,9 @@ void test_routine() {
 
     // dbhandler ctor
     DBHandler dbh{lines};
+    for (auto i = 0; i < 10; i++) {
+        cout << dbh.m_database[i] << endl;
+    }
 
 
     return;
