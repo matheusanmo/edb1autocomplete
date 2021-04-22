@@ -50,7 +50,7 @@ class IOHandler {
         /** @brief Exibe mensagem pedindo input, recebe e retorna string. 
          * */
         string request_line(void) const {
-            m_ostream << "Type a word and hit ENTER or <ctrl>+d to quit: " << std::flush;
+            m_ostream << ">>> Type a word and hit ENTER or <ctrl>+d to quit: " << std::flush;
             string ret_str{};
             m_istream.clear();
             std::getline(m_istream, ret_str);
@@ -60,6 +60,7 @@ class IOHandler {
         /** @brief Printa os termos recebidos usando a stream de saida.
          * */
         void present_terms(const std::vector<std::reference_wrapper<const Term>>& terms) {
+            std::cout << ">>> The matches are:\n";
             for (const std::reference_wrapper<const Term>& term : terms) {
                 m_ostream << term.get().m_query << "\n";
             }
