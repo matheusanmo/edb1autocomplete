@@ -1,6 +1,8 @@
+/* main.cpp */
 #include <string>     // getline
 #include <vector>
 #include <istream>
+#include <fstream>    // ifstream
 #include <ostream>    // flush, endl
 #include <iostream>   // cout, cin
 #include <functional> // reference_wrapper, cref
@@ -59,7 +61,7 @@ class IOHandler {
 
         /** @brief Printa os termos recebidos usando a stream de saida.
          * */
-        void present_terms(const std::vector<std::reference_wrapper<const Term>>& terms) {
+        void present_terms(const std::vector<std::reference_wrapper<const Term>>& terms) const {
             std::cout << ">>> The matches are:\n";
             for (const std::reference_wrapper<const Term>& term : terms) {
                 m_ostream << term.get().m_query << "\n";
@@ -70,7 +72,17 @@ class IOHandler {
 
         /** @brief Abre o arquivo de texto `m_database_filename` e carrega as linhas num vector. 
          * */
-        std::vector<string> read_lines(void) const;
+        std::vector<string> read_lines(void) const {
+            std::vector<string> lines_ret{};
+            std::ifstream ifs{m_database_filename};
+            for (string line; std::getline(ifs, line); ) {
+                lines_ret.push_back(line);
+            }
+            return lines_ret;
+        }
+
+
+
 }; //class IOHandler
 
 /** 
@@ -103,15 +115,26 @@ void test_routine() {
     using std::cout;
     using std::endl;
 
-    IOHandler ioh{std::cin, std::cout, ""};
+    // requestline
+    IOHandler ioh{std::cin, std::cout, __FILE__};
     string str{ioh.request_line()};
     cout << str << endl;
 
+    // present terms
     std::vector<Term> test_terms = { Term(1, "numero 1"), Term(2, "numero dois"), Term(999, "numero novenovenove") };
     std::vector<std::reference_wrapper<const Term>> test_crefs{};
     for (const Term& term : test_terms)
         test_crefs.push_back(std::cref(term));
     ioh.present_terms(test_crefs);
+
+    // read_lines
+    std::vector<string> lines{ioh.read_lines()};
+    for (int i = 0; i < 10; i++) {
+        cout << lines[i] << endl;
+    }
+
+
+
 
     return;
 }
