@@ -1,8 +1,9 @@
-#include <string> // getline
+#include <string>     // getline
 #include <vector>
 #include <istream>
-#include <ostream>  // flush, endl
-#include <iostream> // cout, cin
+#include <ostream>    // flush, endl
+#include <iostream>   // cout, cin
+#include <functional> // reference_wrapper, cref
 
 #define DBG_PRINTLINE std::cout << __FILE__ ":" << __LINE__ << std::endl
 
@@ -14,7 +15,10 @@ using std::string;
 struct Term {
     size_t    m_weight;
     string    m_query;
-    Term(size_t weight, const string& query);
+    Term(size_t weight, const string& query) 
+        : m_weight(weight)
+        , m_query(query)
+    { /* empty */ }
 }; // struct Term
 
 /**
@@ -32,15 +36,6 @@ class IOHandler {
         /** Nome do arquivo de texto contendo a database. */
         string        m_database_filename;
 
-    //////////
-    // Testes
-    //////////
-    private:
-        static bool test_constructor(void);
-        static bool test_request_line(void);
-        static bool test_present_terms(void);
-        static bool test_readlines(void);
-
     ////////////////////
     // Metodos publicos
     ////////////////////
@@ -54,7 +49,7 @@ class IOHandler {
 
         /** @brief Exibe mensagem pedindo input, recebe e retorna string. 
          * */
-        string request_line(void) {
+        string request_line(void) const {
             m_ostream << "Type a word and hit ENTER or <ctrl>+d to quit: " << std::flush;
             string ret_str{};
             m_istream.clear();
@@ -64,10 +59,17 @@ class IOHandler {
 
         /** @brief Printa os termos recebidos usando a stream de saida.
          * */
-        void present_terms(const std::vector<const Term&>& terms);
+        void present_terms(const std::vector<std::reference_wrapper<const Term>>& terms) {
+            for (const std::reference_wrapper<const Term>& term : terms) {
+                m_ostream << term.get().m_query << "\n";
+            }
+            m_ostream << std::flush;
+            return;
+        }
+
         /** @brief Abre o arquivo de texto `m_database_filename` e carrega as linhas num vector. 
          * */
-        std::vector<string> read_lines(void);
+        std::vector<string> read_lines(void) const;
 }; //class IOHandler
 
 /** 
@@ -103,6 +105,12 @@ void test_routine() {
     IOHandler ioh{std::cin, std::cout, ""};
     string str{ioh.request_line()};
     cout << str << endl;
+
+    std::vector<Term> test_terms = { Term(1, "numero 1"), Term(2, "numero dois"), Term(999, "numero novenovenove") };
+    std::vector<std::reference_wrapper<const Term>> test_crefs{};
+    for (const Term& term : test_terms)
+        test_crefs.push_back(std::cref(term));
+    ioh.present_terms(test_crefs);
 
     return;
 }
