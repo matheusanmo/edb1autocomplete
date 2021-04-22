@@ -7,6 +7,7 @@
 #include <ostream>    // flush, endl
 #include <iostream>   // cout, cin
 #include <functional> // reference_wrapper, cref
+#include <algorithm>  // sort
 
 #define DBG_PRINTLINE std::cout << __FILE__ ":" << __LINE__ << std::endl
 
@@ -28,6 +29,24 @@ struct Term {
         ss >> m_query;
     }
 }; // struct Term
+
+/** functor compara terms por weight
+ */
+struct CompTermWeight {
+    /** lhs < rhs ? */
+    bool operator()(const Term& lhs, const Term& rhs) {
+        return lhs.m_weight < rhs.m_weight;
+    }
+}; // struct CompTermWeight
+
+/** functor compara terms por query (alfabeticamente)
+ */
+struct CompTermQuery {
+    /** lhs < rhs ? */
+    bool operator()(const Term& lhs, const Term& rhs) {
+        return lhs.m_query < rhs.m_query;
+    }
+}; // struct CompTermQuery
 
 /**
  * iohandler
@@ -103,6 +122,7 @@ class DBHandler {
     ////////////////////
     public:
         explicit DBHandler(const std::vector<string>& lines) {
+            // TODO sortear alfabeticamente 
             m_database.clear();
             bool firstline = true;
             for (const string& line : lines) {
@@ -113,8 +133,12 @@ class DBHandler {
                 m_database.push_back(Term(line));
             }
         }
-        std::vector<Term> get_terms(string prefix);
-        std::vector<const Term&> get_terms_unstable_refs(string prefix);
+
+        std::vector<Term> get_terms(const string& prefix);
+
+        std::vector<std::reference_wrapper<const Term>>get_terms_unstable_refs(const string& prefix);
+
+            
 }; // class DBHandler
 
 /**
