@@ -1,17 +1,20 @@
-#include <string>
-using std::string;
-
-#include <array>
+#include <string> // getline
+#include <vector>
 #include <istream>
-#include <ostream>
+#include <ostream>  // flush, endl
+#include <iostream> // cout, cin
+
+#define DBG_PRINTLINE std::cout << __FILE__ ":" << __LINE__ << std::endl
+
+using std::string;
 
 /**
  * term
  */
 struct Term {
-    size_type m_weight;
+    size_t    m_weight;
     string    m_query;
-    Term(size_type weight, const string& query);
+    Term(size_t weight, const string& query);
 }; // struct Term
 
 /**
@@ -22,27 +25,49 @@ class IOHandler {
     // Membros privados
     ////////////////////
     private:
-        std::istream m_istream;
-        std::ostream m_ostream;
-        string       m_database_filename;
+        /** Stream que sera usada para printar queries. */
+        std::istream& m_istream;
+        /** Stream que sera usada para receber prefixos. */
+        std::ostream& m_ostream;
+        /** Nome do arquivo de texto contendo a database. */
+        string        m_database_filename;
 
     //////////
     // Testes
     //////////
     private:
-        bool test_constructor(void);
-        bool test_request_line(void);
-        bool test_present_terms(void);
-        bool test_readlines(void);
+        static bool test_constructor(void);
+        static bool test_request_line(void);
+        static bool test_present_terms(void);
+        static bool test_readlines(void);
 
     ////////////////////
     // Metodos publicos
     ////////////////////
     public:
-        IOHandler(std::istream is, std::ostream os, string dbfilename);
-        string request_line(void);
-        void present_terms(const std::array<const Term&>& terms);
-        std::array<string> read_lines(void);
+        /** @brief Construtor. */
+        IOHandler(std::istream& is, std::ostream& os, string dbfilename) 
+            : m_istream(is)
+            , m_ostream(os)
+            , m_database_filename(dbfilename)
+        { /* empty */ }
+
+        /** @brief Exibe mensagem pedindo input, recebe e retorna string. 
+         * */
+        string request_line(void) {
+            m_ostream << "Type a word and hit ENTER or <ctrl>+d to quit: " << std::flush;
+            string ret_str{};
+            m_istream.clear();
+            std::getline(m_istream, ret_str);
+            return ret_str;
+        }
+
+        /** @brief Printa os termos recebidos usando a stream de saida.
+         * */
+        void present_terms(const std::vector<const Term&>& terms);
+        /** @brief Abre o arquivo de texto `m_database_filename` e carrega as linhas num vector. 
+         * */
+        std::vector<string> read_lines(void);
 }; //class IOHandler
 
 /** 
@@ -50,11 +75,11 @@ class IOHandler {
  */
 class DBHandler {
     private:
-        std::array<Term> m_database;
+        std::vector<Term> m_database;
     public:
-        explicit DBHandler(const std::array<string>& lines);
-        std::array<Term> get_terms(string prefix);
-        std::array<const Term&> get_terms_unstable_refs(string prefix);
+        explicit DBHandler(const std::vector<string>& lines);
+        std::vector<Term> get_terms(string prefix);
+        std::vector<const Term&> get_terms_unstable_refs(string prefix);
 }; // class DBHandler
 
 /**
@@ -63,7 +88,6 @@ class DBHandler {
 void print_help() {
     using std::cout;
     using std::endl;
-    cout << "% ./autocomplete\n";
     cout << "Usage: autocomplete <database_file>\n";
     cout << "  Where <database_file> is the ascii file that contains the query terms and weights." << endl;
     return;
@@ -73,6 +97,13 @@ void print_help() {
  * test_routine
  */
 void test_routine() {
+    using std::cout;
+    using std::endl;
+
+    IOHandler ioh{std::cin, std::cout, ""};
+    string str{ioh.request_line()};
+    cout << str << endl;
+
     return;
 }
 
@@ -84,12 +115,13 @@ int main(int argc, char** argv) {
         print_help();
         return 1;
     }
-    string database_file{argv[2]};
+    string database_file{argv[1]};
+    test_routine();
     // IOHandler ioh{std::cin, std::cout, string dbfilename};
     // DBHandler dbh{ioh.read_lines()};
     // while (true) {
     //     string prefix{ioh.request_line()};
-    //     std::array<const Term&> terms{dbh.get_terms_unstable_refs(prefix)};
+    //     std::vector<const Term&> terms{dbh.get_terms_unstable_refs(prefix)};
     //     ioh.present_terms(terms)
     // }
     return 0;
