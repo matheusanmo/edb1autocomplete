@@ -2,6 +2,7 @@
 #include <string>     // getline
 #include <vector>
 #include <istream>
+#include <sstream>    // stringstream
 #include <fstream>    // ifstream
 #include <ostream>    // flush, endl
 #include <iostream>   // cout, cin
@@ -17,10 +18,15 @@ using std::string;
 struct Term {
     size_t    m_weight;
     string    m_query;
-    Term(size_t weight, const string& query) 
+    Term(size_t weight=0, const string& query="") 
         : m_weight(weight)
         , m_query(query)
     { /* empty */ }
+    Term(const string& line) {
+        std::stringstream ss{line};
+        ss >> m_weight;
+        ss >> m_query;
+    }
 }; // struct Term
 
 /**
@@ -80,19 +86,33 @@ class IOHandler {
             }
             return lines_ret;
         }
-
-
-
 }; //class IOHandler
 
 /** 
  * dbhandler
  */
 class DBHandler {
+    ////////////////////
+    // Membros privados
+    ////////////////////
     private:
         std::vector<Term> m_database;
+
+    ////////////////////
+    // Metodos publicos
+    ////////////////////
     public:
-        explicit DBHandler(const std::vector<string>& lines);
+        explicit DBHandler(const std::vector<string>& lines) {
+            m_database.clear();
+            bool firstline = true;
+            for (const string& line : lines) {
+                if (firstline) {
+                    firstline = false;
+                    continue;
+                }
+                m_database.push_back(Term(line));
+            }
+        }
         std::vector<Term> get_terms(string prefix);
         std::vector<const Term&> get_terms_unstable_refs(string prefix);
 }; // class DBHandler
@@ -116,7 +136,7 @@ void test_routine() {
     using std::endl;
 
     // requestline
-    IOHandler ioh{std::cin, std::cout, __FILE__};
+    IOHandler ioh{std::cin, std::cout, "data_wiktionary.txt"};
     string str{ioh.request_line()};
     cout << str << endl;
 
@@ -133,7 +153,8 @@ void test_routine() {
         cout << lines[i] << endl;
     }
 
-
+    // dbhandler ctor
+    DBHandler dbh{lines};
 
 
     return;
