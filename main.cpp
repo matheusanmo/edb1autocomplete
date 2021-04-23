@@ -212,6 +212,12 @@ class DBHandler {
             return vec_ret;
         }
 
+        /** @brief Retorna tamanho do vector de termos. 
+         */
+        size_t size(void) const {
+            return m_database.size();
+        }
+
 }; // class DBHandler
 
 /**
@@ -277,6 +283,9 @@ int main(int argc, char** argv) {
     string database_file{argv[1]};
     IOHandler ioh{std::cin, std::cout, database_file};
     DBHandler dbh{ioh.read_lines()};
+
+    std::cout << " >>> Arquivo selecionado: " << database_file << std::endl;
+    std::cout << " >>> " << dbh.size() << " termos carregados." << std::endl;
     while (true) {
         string prefix{ioh.request_line()};
         if (prefix == ".") {
