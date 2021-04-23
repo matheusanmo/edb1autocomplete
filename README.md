@@ -4,7 +4,7 @@
 ## Compilação
 `autocomplete` precisa de um compilador com suporte C++11. O seguinte comando constrói o binário `autocomplete` no diretório atual:
 
-    clang++ -std=c++11 -Wall -Wextra -pedantic -a autocomplete main.cpp
+    clang++ -std=c++11 -Wall -Wextra -pedantic -o autocomplete main.cpp
 
 ## Invocação
 `autocomplete` recebe um único argumento de linha de comando, que deve ser o endereço do arquivo de texto que contém os termos. 
