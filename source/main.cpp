@@ -7,54 +7,79 @@
 #include <ostream>    // flush, endl
 #include <iostream>   // cout, cin
 #include <functional> // reference_wrapper, cref
-#include <algorithm>  // sort
+#include <algorithm>  // sort, upper_bound, lower_bound, reverse
 
-#define DBG_PRINTLINE std::cout << __FILE__ ":" << __LINE__ << std::endl
-
+///////////////////
+// `using` globais
+///////////////////
 using std::string;
 
+////////////////////////////
+// Macros do preprocessador
+////////////////////////////
+#define DBG_PRINTLINE std::cout << __FILE__ << ":" <<  __LINE__ << std::endl
+
+//////////////////////////////////////////
+// Forward declaration de funcoes globais
+//////////////////////////////////////////
 void test_routine();
 
 /**
- * term
+ * Modela um termo composto por um peso `m_weight` e uma query `m_query`.
  */
 struct Term {
     size_t    m_weight;
     string    m_query;
+    /** @brief Construtor regular a partir de um peso (unsigned) e uma string.
+     */
     Term(size_t weight=0, const string& query="") 
         : m_weight(weight)
         , m_query(query)
     { /* empty */ }
-    Term(const string& line) {
+    /** @brief Constrói a partir de uma linha do arquivo de dados.
+     *
+     * Este método assume que as linhas seguem um padrão "\s*(\d*)\s*(.*)", onde o 
+     * primeiro grupo captura o peso do termo e o segundo a query.
+     * @param   line    linha formatada como nos arquivos de dados.
+     */
+    explicit Term(const string& line) {
         std::stringstream ss{line};
         ss >> m_weight;
         ss >> m_query;
     }
+    /** @brief Formata o objeto como string e envia para a stream. 
+     */
     friend std::ostream& operator<<(std::ostream& os, const Term& term) {
         return os << "<Term weight=" << term.m_weight << ", query=\"" << term.m_query << "\">";
     }
 }; // struct Term
 
-/** functor compara terms por weight
+/** 
+ * Functor para comparar Term pelo peso.
  */
 struct CompTermWeight {
     /** lhs < rhs ? */
     bool operator()(const Term& lhs, const Term& rhs) {
-        return lhs.m_weight < rhs.m_weight;
+        DBG_PRINTLINE;
+        std::cout << lhs.m_weight << "<" << rhs.m_weight << std::endl;
+        return (lhs.m_weight < rhs.m_weight);
     }
 }; // struct CompTermWeight
 
-/** functor compara terms por query (alfabeticamente)
+/** 
+ * Functor para comparar Term pela query.
  */
 struct CompTermQuery {
     /** lhs < rhs ? */
     bool operator()(const Term& lhs, const Term& rhs) {
-        return lhs.m_query < rhs.m_query;
+        DBG_PRINTLINE;
+        std::cout << lhs.m_query << "<" << rhs.m_query << std::endl;
+        return (lhs.m_query < rhs.m_query);
     }
 }; // struct CompTermQuery
 
 /**
- * iohandler
+ * Esta classe lida com tarefas que envolvem IO.
  */
 class IOHandler {
     ////////////////////
@@ -67,19 +92,25 @@ class IOHandler {
         std::ostream& m_ostream;
         /** Nome do arquivo de texto contendo a database. */
         string        m_database_filename;
+        friend void test_routine(void);
 
     ////////////////////
     // Metodos publicos
     ////////////////////
     public:
-        /** @brief Construtor. */
+        /** @brief Construtor regular.
+         *
+         * @param   is          `istream` para receber string prefixo para busca de autosugestão.
+         * @param   os          `ostream` para apresentação das sugestões e exibição de mensagens.
+         * @param   dbfilename  string contendo localização do arquivo de texto de dados.
+         */
         IOHandler(std::istream& is, std::ostream& os, string dbfilename) 
             : m_istream(is)
             , m_ostream(os)
             , m_database_filename(dbfilename)
         { /* empty */ }
 
-        /** @brief Exibe mensagem pedindo input, recebe e retorna string. 
+        /** @brief Exibe mensagem pedindo input, recebe (pelo `m_istream`) e retorna string. 
          * */
         string request_line(void) const {
             m_ostream << ">>> Type a word and hit ENTER or <ctrl>+d to quit: " << std::flush;
@@ -89,7 +120,7 @@ class IOHandler {
             return ret_str;
         }
 
-        /** @brief Printa os termos recebidos usando a stream de saida.
+        /** @brief Printa os termos recebidos usando a stream de saída.
          * */
         void present_terms(const std::vector<std::reference_wrapper<const Term>>& terms) const {
             std::cout << ">>> The matches are:\n";
@@ -113,21 +144,50 @@ class IOHandler {
 }; //class IOHandler
 
 /** 
- * dbhandler
+ * Esta classe constrói e armazena a base de dados de termos de sugestão a partir de um vetor de linhas
+ * e oferece métodos para pedir sugestões a partir de prefixos.
+ *TODO: explicar sorts
  */
 class DBHandler {
     ////////////////////
-    // Membros privados
+    // Membros e metodos privados
     ////////////////////
     private:
+        /** Database de termos (pesos e queries). */
         std::vector<Term> m_database;
+
+        /** Posição do lower_bound da última pesquisa. Usado para reordernar o array. */
+        typename std::vector<Term>::iterator m_last_lb;
+
+        /** Posição do upper_bound da última pesquisa. Usado para reordernar o array. */
+        typename std::vector<Term>::iterator m_last_ub;
+
+        /** A database está completamente ordenada alfabeticamente? */
+        bool m_sorted;
+
+        /** @brief Reordena o vector alfabeticamente, se necessário.
+         *
+         * Reorderna o vector alfabeticamente. Isto pode ser necessário pois parte do vector é
+         * ordenado por peso no processo de busca de sugestões.
+         */
+        void reorder(void) {
+            if (m_sorted)
+                return;
+            std::sort(m_last_lb, m_last_ub, CompTermQuery{});
+            m_sorted = true;
+            return;
+        }
+
         friend void test_routine(void);
 
     ////////////////////
     // Metodos publicos
     ////////////////////
     public:
+        /** @brief Construtor regular a partir de um vector de strings como no arquivos de dados.
+         */
         explicit DBHandler(const std::vector<string>& lines) {
+            m_sorted = false;
             m_database.clear();
             bool firstline = true;
             for (const string& line : lines) {
@@ -137,19 +197,44 @@ class DBHandler {
                 }
                 m_database.push_back(Term(line));
             }
-            // TODO sortear alfabeticamente 
             std::sort(m_database.begin(), m_database.end(), CompTermQuery{});
+            m_sorted = true;
         }
 
+        /** @brief Cria vetor de termos e retorna por valor.
+         */
         std::vector<Term> get_terms(const string& prefix);
 
-        std::vector<std::reference_wrapper<const Term>>get_terms_unstable_refs(const string& prefix);
+        /** @brief Cria vetor de referências a termos. */
+        std::vector<std::reference_wrapper<const Term>> get_terms_unstable_refs(const string& prefix) {
+            if (!m_sorted)
+                reorder();
+            Term dummy_prefix{0u, prefix};
+            std::cout << "dumy" << dummy_prefix << std::endl;
+            std::vector<std::reference_wrapper<const Term>> vec_ret{};
+            auto ub = std::upper_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermQuery{});
+            DBG_PRINTLINE;
+            std::cout << *ub << std::endl;
+            auto lb = std::lower_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermQuery{});
+            DBG_PRINTLINE;
+            std::cout << *lb << std::endl;
+            m_last_lb = lb;
+            m_last_ub = ub;
+            std::sort(lb, ub, CompTermWeight{});
+            std::reverse(lb, ub);
+            while (lb != ub) {
+                DBG_PRINTLINE;
+                vec_ret.push_back(std::cref(*lb++));
+            }
+            DBG_PRINTLINE;
+            std::cout << vec_ret.size() << std::endl;
+            return vec_ret;
+        }
 
-            
 }; // class DBHandler
 
 /**
- * print help
+ * Printa instruções de invocação do programa.
  */
 void print_help() {
     using std::cout;
@@ -160,7 +245,7 @@ void print_help() {
 }
 
 /**
- * test_routine
+ * "Testa" de forma manual as classes.
  */
 void test_routine() {
     using std::cout;
@@ -186,10 +271,15 @@ void test_routine() {
 
     // dbhandler ctor
     DBHandler dbh{lines};
-    for (auto i = 0; i < 10; i++) {
+    for (auto i = 999; i < 1009; i++) {
         cout << dbh.m_database[i] << endl;
     }
+    cout << "database size " << dbh.m_database.size() << endl;
 
+    // get_terms_unstable_refs
+    cout << "UNSTABLE REFS" << endl;
+    auto terms = dbh.get_terms_unstable_refs("pr");
+    ioh.present_terms(terms);
 
     return;
 }
@@ -198,6 +288,8 @@ void test_routine() {
  * main
  */
 int main(int argc, char** argv) {
+    // Printar ajuda e sair se não temos database.
+    // TODO: checar se arquivo existe.
     if (argc < 2) {
         print_help();
         return 1;
