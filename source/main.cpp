@@ -80,7 +80,6 @@ struct CompTermLB {
     bool operator()(const Term& lhs, const Term& rhs) {
         const string& str_rhs = rhs.m_query;
         const string& str_lhs = lhs.m_query.substr(0, str_rhs.size());
-        std::cout << "CompTermLB \"" << lhs.m_query << "\" < \"" << rhs.m_query << "\" = " << std::boolalpha << (str_lhs < str_rhs) << std::endl;
         return str_lhs < str_rhs;
     }
 }; // struct CompTermLB
@@ -92,7 +91,6 @@ struct CompTermUB {
     bool operator()(const Term& lhs, const Term& rhs) {
         const string& str_lhs = lhs.m_query;
         const string& str_rhs = rhs.m_query.substr(0, str_lhs.size());
-        std::cout << "CompTermUB \"" << lhs.m_query << "\" < \"" << rhs.m_query << "\" = " << std::boolalpha << (str_lhs < str_rhs) << std::endl;
         return str_lhs < str_rhs;
     }
 }; // struct CompTermUB
@@ -204,9 +202,7 @@ class DBHandler {
             std::vector<std::reference_wrapper<const Term>> vec_ret{};
             // Apanhar lower/upper bounds
             auto lb = std::lower_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermLB{});
-            std::cout << "LB: " << *lb << std::endl;
             auto ub = std::upper_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermUB{});
-            std::cout << "UB: " << *ub << std::endl;
             // Colocar referencias no vetor de retorno
             while (lb != ub) 
                 vec_ret.push_back(std::cref(*lb++));
