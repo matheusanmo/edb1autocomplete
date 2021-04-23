@@ -1,6 +1,4 @@
 # `autocomplete`
-
-## O que é
 `autocomplete` é um programa em C++ que lê um arquivo de texto contendo pares query-peso e calcula e apresenta sugestões baseadas num prefixo inserido pelo usuário.
 
 ## Compilação
