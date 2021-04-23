@@ -55,29 +55,47 @@ struct Term {
     }
 }; // struct Term
 
-/** 
- * Functor para comparar Term pelo peso.
+/** @brief Functor para comparar Term pelo peso.
  */
 struct CompTermWeight {
     /** lhs < rhs ? */
     bool operator()(const Term& lhs, const Term& rhs) {
-        DBG_PRINTLINE;
-        std::cout << lhs.m_weight << "<" << rhs.m_weight << std::endl;
         return (lhs.m_weight < rhs.m_weight);
     }
 }; // struct CompTermWeight
 
-/** 
- * Functor para comparar Term pela query.
+/** @brief Functor para comparar Term pela query como um dicionário. Usado na ordenação inicial dos termos.
  */
-struct CompTermQuery {
-    /** lhs < rhs ? */
+struct CompTermLexicographic {
     bool operator()(const Term& lhs, const Term& rhs) {
         const string& str_lhs = lhs.m_query;
         const string& str_rhs = rhs.m_query;
-        return (str_lhs.substr(0, str_rhs.size()) < str_rhs.substr(0, str_lhs.size()));
+        return str_lhs < str_rhs;
     }
-}; // struct CompTermQuery
+}; // struct CompTermLexicographic
+
+/** @brief Functor para comparar Term usado por `lower_bound`. 
+ */
+struct CompTermLB {
+    bool operator()(const Term& lhs, const Term& rhs) {
+        const string& str_rhs = rhs.m_query;
+        const string& str_lhs = lhs.m_query.substr(0, str_rhs.size());
+        std::cout << "CompTermLB \"" << lhs.m_query << "\" < \"" << rhs.m_query << "\" = " << std::boolalpha << (str_lhs < str_rhs) << std::endl;
+        return str_lhs < str_rhs;
+    }
+}; // struct CompTermLB
+
+/** @brief Functor para comparar Term usado por `upper_bound`. 
+ */
+struct CompTermUB {
+    /** lhs < rhs ? */
+    bool operator()(const Term& lhs, const Term& rhs) {
+        const string& str_lhs = lhs.m_query;
+        const string& str_rhs = rhs.m_query.substr(0, str_lhs.size());
+        std::cout << "CompTermUB \"" << lhs.m_query << "\" < \"" << rhs.m_query << "\" = " << std::boolalpha << (str_lhs < str_rhs) << std::endl;
+        return str_lhs < str_rhs;
+    }
+}; // struct CompTermUB
 
 /**
  * Lida com tarefas que envolvem IO.
@@ -147,7 +165,6 @@ class IOHandler {
 /** 
  * Constrói e armazena a base de dados de termos de sugestão a partir de um vetor de linhas
  * e oferece métodos para pedir sugestões a partir de prefixos.
- *TODO: explicar sorts
  */
 class DBHandler {
     ////////////////////
@@ -156,28 +173,6 @@ class DBHandler {
     private:
         /** Database de termos (pesos e queries). */
         std::vector<Term> m_database;
-
-        /** Posição do lower_bound da última pesquisa. Usado para reordernar o array. */
-        typename std::vector<Term>::iterator m_last_lb;
-
-        /** Posição do upper_bound da última pesquisa. Usado para reordernar o array. */
-        typename std::vector<Term>::iterator m_last_ub;
-
-        /** A database está completamente ordenada alfabeticamente? */
-        bool m_sorted;
-
-        /** @brief Reordena o vector alfabeticamente, se necessário.
-         *
-         * Reorderna o vector alfabeticamente. Isto pode ser necessário pois parte do vector é
-         * ordenado por peso no processo de busca de sugestões.
-         */
-        void reorder(void) {
-            if (m_sorted)
-                return;
-            std::sort(m_last_lb, m_last_ub, CompTermQuery{});
-            m_sorted = true;
-            return;
-        }
 
         friend void test_routine(void);
 
@@ -188,47 +183,36 @@ class DBHandler {
         /** @brief Construtor regular a partir de um vector de strings como no arquivos de dados.
          */
         explicit DBHandler(const std::vector<string>& lines) {
-            m_sorted = false;
             m_database.clear();
             bool firstline = true;
             for (const string& line : lines) {
                 if (firstline) {
+                    // Pular a primeira que contem apenas contagem de termos
                     firstline = false;
                     continue;
                 }
                 m_database.push_back(Term(line));
             }
-            std::sort(m_database.begin(), m_database.end(), CompTermQuery{});
-            m_sorted = true;
+            std::sort(m_database.begin(), m_database.end(), CompTermLexicographic{});
         }
 
-        /** @brief Cria vetor de termos e retorna por valor.
-         */
-        std::vector<Term> get_terms(const string& prefix);
-
         /** @brief Cria vetor de referências a termos. */
-        std::vector<std::reference_wrapper<const Term>> get_terms_unstable_refs(const string& prefix) {
-            if (!m_sorted)
-                reorder();
+        std::vector<std::reference_wrapper<const Term>> get_terms_refs(const string& prefix) {
+            // Encaixar prefix num Term para facilitar comparacao
             Term dummy_prefix{0u, prefix};
-            std::cout << "dumy" << dummy_prefix << std::endl;
+            // Inicializar vetor de referencias
             std::vector<std::reference_wrapper<const Term>> vec_ret{};
-            auto ub = std::upper_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermQuery{});
-            DBG_PRINTLINE;
-            std::cout << *ub << std::endl;
-            auto lb = std::lower_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermQuery{});
-            DBG_PRINTLINE;
-            std::cout << *lb << std::endl;
-            m_last_lb = lb;
-            m_last_ub = ub;
-            std::sort(lb, ub, CompTermWeight{});
-            std::reverse(lb, ub);
-            while (lb != ub) {
-                DBG_PRINTLINE;
+            // Apanhar lower/upper bounds
+            auto lb = std::lower_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermLB{});
+            std::cout << "LB: " << *lb << std::endl;
+            auto ub = std::upper_bound(m_database.begin(), m_database.end(), dummy_prefix, CompTermUB{});
+            std::cout << "UB: " << *ub << std::endl;
+            // Colocar referencias no vetor de retorno
+            while (lb != ub) 
                 vec_ret.push_back(std::cref(*lb++));
-            }
-            DBG_PRINTLINE;
-            std::cout << vec_ret.size() << std::endl;
+            // Ordenar referencias por peso
+            std::sort(vec_ret.begin(), vec_ret.end(), CompTermWeight{});
+            std::reverse(vec_ret.begin(), vec_ret.end());
             return vec_ret;
         }
 
@@ -277,9 +261,9 @@ void test_routine() {
     }
     cout << "database size " << dbh.m_database.size() << endl;
 
-    // get_terms_unstable_refs
-    cout << "UNSTABLE REFS" << endl;
-    auto terms = dbh.get_terms_unstable_refs("pr");
+    // get_terms_refs
+    cout << "REFS" << endl;
+    auto terms = dbh.get_terms_refs("pr");
     ioh.present_terms(terms);
 
     return;
@@ -290,52 +274,17 @@ void test_routine() {
  */
 int main(int argc, char** argv) {
     // Printar ajuda e sair se não temos database.
-    // TODO: checar se arquivo existe.
     if (argc < 2) {
         print_help();
         return 1;
     }
     string database_file{argv[1]};
-//    std::vector<string> strings = {
-//        string("moda"),
-//        string("nadar"),
-//        string("ocaso"),
-//        string("negativo"),
-//        string("mel"),
-//        string("nacao"),
-//        string("nulo"),
-//        string("nitrato"),
-//        string("normal"),
-//        string("orvalho"),
-//        string("nada"),
-//        string("na")
-//        };
-//    string na{"na"};
-//    std::sort(strings.begin(), strings.end());
-//    for (const auto& l : strings) std::cout<<l<<std::endl;
-//    std::cout << std::endl << *lower_bound(strings.begin(), strings.end(), "na") << std::endl;
-//    std::cout << *upper_bound(strings.begin(), strings.end(), "na") << std::endl;
-//    std::cout << std::endl << std::endl;
-//    for (const auto& s : strings) {
-//        std::cout << s << " < na? " << std::boolalpha << (s < na) << std::endl;
-//    }
-//    std::cout<<std::endl;
-//    for (const auto& s : strings) {
-//        std::cout << s << " > na? " << std::boolalpha << (s > na) << std::endl;
-//    }
-//    std::cout<<std::endl;
-//    for (const auto& s : strings) {
-//        std::cout << "na < " << s << " ? " << std::boolalpha << (na < s.substr(0, na.size())) << std::endl;
-//    }
-//    return 0;
-
-    test_routine();
-    // IOHandler ioh{std::cin, std::cout, string dbfilename};
-    // DBHandler dbh{ioh.read_lines()};
-    // while (true) {
-    //     string prefix{ioh.request_line()};
-    //     std::vector<const Term&> terms{dbh.get_terms_unstable_refs(prefix)};
-    //     ioh.present_terms(terms)
-    // }
+    IOHandler ioh{std::cin, std::cout, database_file};
+    DBHandler dbh{ioh.read_lines()};
+    while (true) {
+        string prefix{ioh.request_line()};
+        std::vector<std::reference_wrapper<const Term>> terms = dbh.get_terms_refs(prefix);
+        ioh.present_terms(terms);
+    }
     return 0;
 }
