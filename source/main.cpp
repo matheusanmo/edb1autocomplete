@@ -130,7 +130,7 @@ class IOHandler {
         /** @brief Exibe mensagem pedindo input, recebe (pelo `m_istream`) e retorna string. 
          * */
         string request_line(void) const {
-            m_ostream << ">>> Type a word and hit ENTER or <ctrl>+d to quit: " << std::flush;
+            m_ostream << " >>> Type a word and hit ENTER or a single dot (\'.\') to quit: " << std::flush;
             string ret_str{};
             m_istream.clear();
             std::getline(m_istream, ret_str);
@@ -140,7 +140,7 @@ class IOHandler {
         /** @brief Printa os termos recebidos usando a stream de saída.
          * */
         void present_terms(const std::vector<std::reference_wrapper<const Term>>& terms) const {
-            std::cout << ">>> The matches are:\n";
+            std::cout << " >>> The matches are:\n";
             for (const std::reference_wrapper<const Term>& term : terms) {
                 m_ostream << term.get().m_query << "\n";
             }
@@ -279,8 +279,13 @@ int main(int argc, char** argv) {
     DBHandler dbh{ioh.read_lines()};
     while (true) {
         string prefix{ioh.request_line()};
+        if (prefix == ".") {
+            std::cout << " >>> Exiting." << std::endl;
+            break;
+        }
         std::vector<std::reference_wrapper<const Term>> terms = dbh.get_terms_refs(prefix);
         ioh.present_terms(terms);
     }
+
     return 0;
 }
