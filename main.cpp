@@ -269,7 +269,7 @@ void test_routine() {
  * main
  */
 int main(int argc, char** argv) {
-    // Printar ajuda e sair se não temos database.
+    // Printar ajuda e sair se não recebemos database.
     if (argc < 2) {
         print_help();
         return 1;
@@ -286,6 +286,6 @@ int main(int argc, char** argv) {
         std::vector<std::reference_wrapper<const Term>> terms = dbh.get_terms_refs(prefix);
         ioh.present_terms(terms);
     }
-
     return 0;
 }
+
