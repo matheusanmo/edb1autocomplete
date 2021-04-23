@@ -1,5 +1,6 @@
 /* main.cpp */
 #include <string>     // getline
+#include <ios>        // boolalpha
 #include <vector>
 #include <istream>
 #include <sstream>    // stringstream
@@ -25,7 +26,7 @@ using std::string;
 void test_routine();
 
 /**
- * Modela um termo composto por um peso `m_weight` e uma query `m_query`.
+ * @brief Um termo composto por um peso `m_weight` e uma query `m_query`.
  */
 struct Term {
     size_t    m_weight;
@@ -38,7 +39,7 @@ struct Term {
     { /* empty */ }
     /** @brief Constrói a partir de uma linha do arquivo de dados.
      *
-     * Este método assume que as linhas seguem um padrão "\s*(\d*)\s*(.*)", onde o 
+     * Este método assume que as linhas seguem um padrão `\s*(\d*)\s*(.*)`, onde o 
      * primeiro grupo captura o peso do termo e o segundo a query.
      * @param   line    linha formatada como nos arquivos de dados.
      */
@@ -72,14 +73,14 @@ struct CompTermWeight {
 struct CompTermQuery {
     /** lhs < rhs ? */
     bool operator()(const Term& lhs, const Term& rhs) {
-        DBG_PRINTLINE;
-        std::cout << lhs.m_query << "<" << rhs.m_query << std::endl;
-        return (lhs.m_query < rhs.m_query);
+        const string& str_lhs = lhs.m_query;
+        const string& str_rhs = rhs.m_query;
+        return (str_lhs.substr(0, str_rhs.size()) < str_rhs.substr(0, str_lhs.size()));
     }
 }; // struct CompTermQuery
 
 /**
- * Esta classe lida com tarefas que envolvem IO.
+ * Lida com tarefas que envolvem IO.
  */
 class IOHandler {
     ////////////////////
@@ -144,7 +145,7 @@ class IOHandler {
 }; //class IOHandler
 
 /** 
- * Esta classe constrói e armazena a base de dados de termos de sugestão a partir de um vetor de linhas
+ * Constrói e armazena a base de dados de termos de sugestão a partir de um vetor de linhas
  * e oferece métodos para pedir sugestões a partir de prefixos.
  *TODO: explicar sorts
  */
@@ -295,6 +296,39 @@ int main(int argc, char** argv) {
         return 1;
     }
     string database_file{argv[1]};
+//    std::vector<string> strings = {
+//        string("moda"),
+//        string("nadar"),
+//        string("ocaso"),
+//        string("negativo"),
+//        string("mel"),
+//        string("nacao"),
+//        string("nulo"),
+//        string("nitrato"),
+//        string("normal"),
+//        string("orvalho"),
+//        string("nada"),
+//        string("na")
+//        };
+//    string na{"na"};
+//    std::sort(strings.begin(), strings.end());
+//    for (const auto& l : strings) std::cout<<l<<std::endl;
+//    std::cout << std::endl << *lower_bound(strings.begin(), strings.end(), "na") << std::endl;
+//    std::cout << *upper_bound(strings.begin(), strings.end(), "na") << std::endl;
+//    std::cout << std::endl << std::endl;
+//    for (const auto& s : strings) {
+//        std::cout << s << " < na? " << std::boolalpha << (s < na) << std::endl;
+//    }
+//    std::cout<<std::endl;
+//    for (const auto& s : strings) {
+//        std::cout << s << " > na? " << std::boolalpha << (s > na) << std::endl;
+//    }
+//    std::cout<<std::endl;
+//    for (const auto& s : strings) {
+//        std::cout << "na < " << s << " ? " << std::boolalpha << (na < s.substr(0, na.size())) << std::endl;
+//    }
+//    return 0;
+
     test_routine();
     // IOHandler ioh{std::cin, std::cout, string dbfilename};
     // DBHandler dbh{ioh.read_lines()};
